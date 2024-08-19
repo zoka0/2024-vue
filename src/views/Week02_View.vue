@@ -56,9 +56,9 @@
         <div v-if="isLogin" class="d-flex justify-content-center">
             <div class="check_page p-1">
                 <div class="text-start fs-5 fw-bold mx-2">
-                    <span class="text-break">用戶: {{ nicknameSignIn }}</span>
+                    <span class="text-break">用戶: {{ user.name }}</span>
                     <br/>
-                    <span class="text-break">{{ messageCheckOut }}</span>
+                    <span class="text-break">{{ user.uid }}</span>
                 </div>
                 <div class="check_btn mx-2">
                     <button @click="signOut" class="btn btn-sm  btn-danger fs-5 m-2" type="button">登出</button>
@@ -216,6 +216,11 @@
     const isLogin = ref(false);
     const isUpdateTodoList = ref(null);
 
+    const user = ref({
+        uid: null,
+        name: null,
+    });
+
     const title = ref([
         {
             "name": "狀態",
@@ -230,25 +235,18 @@
 
     // 清除註冊變數
     const cleanSignUpVar = async() => {
-        emailSignUp.value = '';
-        passwordSignUp.value = '';
-        nicknameSignUp.value = '';
-        messageSignUp.value = '';
+        emailSignUp.value = null;
+        passwordSignUp.value = null;
+        nicknameSignUp.value = null;
+        messageSignUp.value = null;
     };
 
     // 清除登入變數
     const cleanSignInVar = async() => {
-        emailSignIn.value = '';
-        passwordSignIn.value = '';
-        nicknameSignIn.value = '';
-        token.value = '';
-        messageSignIn.value = '';
-    };
-
-    // 清除驗證變數
-    const cleanChenkVar = async() => {
-        tokenCheck.value = '';
-        messageCheckOut.value = '';
+        emailSignIn.value = null;
+        passwordSignIn.value = null;
+        token.value = null;
+        messageSignIn.value = null;
     };
 
     // 切換 註冊&登入
@@ -300,7 +298,6 @@
     // 登入
     const emailSignIn = ref('');
     const passwordSignIn = ref('');
-    const nicknameSignIn = ref('');
     const token = ref('');
     const messageSignIn = ref('');
     
@@ -314,12 +311,11 @@
                 email: emailSignIn.value,
                 password: passwordSignIn.value,
             });
-            nicknameSignIn.value = response.data.nickname;
-            token.value = response.data.token;
-            tokenCheck.value = token.value;
-            tokenSignOut.value = token.value;
+
             isLogin.value = true;
             messageSignIn.value = '';
+            token.value = response.data.token;
+            await setToken(token.value);
             await checkOut();
             await cleanSignUpVar();
         } catch (error) {
@@ -329,40 +325,46 @@
     };
     
     // 驗證
-    const tokenCheck = ref('');
-    const messageCheckOut = ref('');
-    
+    // const tokenCheck = ref('');
+    // const messageCheckOut = ref('');
     const checkOut = async () => {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        document.cookie = `hexschoolTodo=${tokenCheck.value}; expires=${tomorrow.toUTCString()}`;
-    
         try {
+            token.value = getToken();
+            if (token.value == '' || token.value == 'undefinde') {
+                return;
+            }
             const response = await axios.get(`${site}/users/checkout`, {
                 headers: {
-                    Authorization: tokenCheck.value,
+                    Authorization: token.value,
                 },
             });
-            nicknameSignIn.value = response.data.nickname;
-            messageCheckOut.value = 'UID: ' + response.data.uid;
+            user.value.name = response.data.nickname;
+            user.value.uid = `UID:  ${response.data.uid}`;
+            isLogin.value = true;
         } catch (error) {
-            messageCheckOut.value = '驗證失敗: ' + error.message;
+            // messageCheckOut.value = '驗證失敗: ' + error.message;
+            isLogin.value = false;
+            isLoginForm.value = true;
+            user.value.uid = `登入失效:  ${error.message}`;
+            alert('登入失效');
             await deleteCookie();
         }
     };
     
     // 登出
-    const tokenSignOut = ref('');
+    // const tokenSignOut = ref('');
     
     const signOut = async () => {
         try {
+            if (token.value == '' || token.value == 'undefinde') {
+                return;
+            }
             const response = await axios.post(`${site}/users/sign_out`, {}, {
                 headers: {
-                    Authorization: tokenSignOut.value,
+                    Authorization: token.value,
                 },
             });
             isLogin.value = false;
-            await cleanChenkVar();
             await cleanSignUpVar();
             await cleanSignInVar();
             await deleteCookie();
@@ -377,8 +379,10 @@
     const todos = ref([]);
     const newTodo = ref('');
     const todoEdit = ref({});
-    
     const getTodos = async () => {
+        if (token.value == '' || token.value == 'undefinde') {
+            return;
+        }
         const response = await axios.get(`${site}/todos`, {
             headers: {
                 Authorization: token.value,
@@ -389,7 +393,9 @@
 
     // 新增事項
     const addTodo = async () => {
-        if (!newTodo.value) return;
+        if (!newTodo.value || token.value == '' || token.value == 'undefinde') {
+            return;
+        }
         const todo = {
             content: newTodo.value,
         };
@@ -404,6 +410,9 @@
 
     // 刪除事項
     const deleteTodo = async (id) => {
+        if (token.value == '' || token.value == 'undefinde') {
+            return;
+        }
         await axios.delete(`${site}/todos/${id}`, {
             headers: {
                 Authorization: token.value,
@@ -414,6 +423,9 @@
 
     // 更新事項
     const updateTodo = async (id) => {
+        if (token.value == '' || token.value == 'undefinde') {
+            return;
+        }
         const todo = todos.value.find((todo) => todo.id === id);
         todo.content = todoEdit.value[id];
         await axios.put(`${site}/todos/${id}`, todo, {
@@ -432,6 +444,9 @@
 
     // 切換事項 完成or未完成
     const toggleStatus = async (id) => {
+        if (token.value == '' || token.value == 'undefinde') {
+            return;
+        }
         await axios.patch(`${site}/todos/${id}/toggle`, {}, {
             headers: {
                 Authorization: token.value,
@@ -459,22 +474,17 @@
     //     .find((row) => row.startsWith('hexschoolTodo='))
     //     ?.split('=')[1];
     const getToken = () => {
-        return document.cookie.replace(/(?:(?:^|.*;\s*)hexschoolTodo\s*\=\s*([^;]*).*$)|^.*$/, "$1",);
+        return document.cookie.replace(/(?:(?:^|.*;\s*)hexschoolTodo\s*\=\s*([^;]*).*$)|^.*$/, "$1");
     };
 
+    const setToken = (token) => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        document.cookie = `hexschoolTodo=${token}; expires=${tomorrow.toUTCString()}`;
+    }
+
     onMounted(() => {
-        let TodoToken = getToken();
-        if (TodoToken != 'undefined' && TodoToken != '' && TodoToken != null) {
-            token.value = TodoToken;
-            tokenCheck.value = token.value;
-            tokenSignOut.value = token.value;
-            isLogin.value = true;
-            checkOut();
-            getTodos();
-        } else {
-            isLogin.value = false;
-            isLoginForm.value = true;
-            deleteCookie();
-        }
+        checkOut();
+        getTodos();
     });
 </script>
