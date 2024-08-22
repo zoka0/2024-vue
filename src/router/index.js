@@ -21,12 +21,17 @@ const router = createRouter({
     {
       path: '/week01',
       name: 'week01',
-      component: () => import('../views/Week01_View.vue')
+      component: () => import('../views/Week/Week01_View.vue')
     },
     {
       path: '/week02',
       name: 'week02',
-      component: () => import('../views/Week02_View.vue')
+      component: () => import('../views/Week/Week02_View.vue')
+    },
+    {
+      path: '/week03',
+      name: 'week03',
+      component: () => import('../views/Week/Week03_View.vue')
     }
   ]
 })
