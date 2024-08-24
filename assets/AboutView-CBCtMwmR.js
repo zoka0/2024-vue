@@ -1,0 +1,1 @@
+import{_ as e,c as o,o as t,a as s}from"./index-Dbu87jjc.js";const c={},_={class:"about"},a=s("h1",null,"這是關於頁",-1),n=[a];function r(d,i){return t(),o("div",_,n)}const f=e(c,[["render",r]]);export{f as default};
